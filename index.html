@@ -479,6 +479,9 @@
             const volume = document.getElementById("ambient-volume");
             let context;
             let master;
+            let mix;
+            let reverb;
+            let compressor;
             let timer;
             let step = 0;
             let playing = false;
@@ -486,33 +489,132 @@
             const scale = [146.83, 164.81, 174.61, 196.00, 220.00, 246.94, 293.66];
             const melody = [0, 2, 4, 5, 4, 2, 3, 1, 0, 2, 6, 5, 4, 2, 1, 2];
 
-            function createTone(frequency, duration, gainValue, delay = 0) {
+            function createImpulse(seconds = 2.4, decay = 2.2) {
+                const length = context.sampleRate * seconds;
+                const impulse = context.createBuffer(2, length, context.sampleRate);
+
+                for (let channel = 0; channel < 2; channel += 1) {
+                    const data = impulse.getChannelData(channel);
+                    for (let i = 0; i < length; i += 1) {
+                        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+                    }
+                }
+
+                return impulse;
+            }
+
+            function createVoice(frequency, duration, gainValue, delay = 0, type = "triangle", cutoff = 1100) {
                 const start = context.currentTime + delay;
                 const oscillator = context.createOscillator();
                 const gain = context.createGain();
                 const filter = context.createBiquadFilter();
 
-                oscillator.type = "triangle";
+                oscillator.type = type;
                 oscillator.frequency.setValueAtTime(frequency, start);
                 filter.type = "lowpass";
-                filter.frequency.setValueAtTime(900, start);
+                filter.frequency.setValueAtTime(cutoff, start);
                 gain.gain.setValueAtTime(0.0001, start);
-                gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.04);
+                gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.12);
+                gain.gain.setTargetAtTime(gainValue * 0.55, start + duration * 0.45, duration * 0.18);
                 gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
                 oscillator.connect(filter);
                 filter.connect(gain);
-                gain.connect(master);
+                gain.connect(mix);
                 oscillator.start(start);
                 oscillator.stop(start + duration + 0.05);
             }
 
+            function createFlute(frequency, duration, delay = 0) {
+                const start = context.currentTime + delay;
+                const voice = context.createOscillator();
+                const breath = context.createOscillator();
+                const breathGain = context.createGain();
+                const gain = context.createGain();
+                const filter = context.createBiquadFilter();
+
+                voice.type = "sine";
+                voice.frequency.setValueAtTime(frequency * 2, start);
+                voice.detune.setValueAtTime(-3, start);
+                breath.type = "sine";
+                breath.frequency.setValueAtTime(frequency * 4.01, start);
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(2200, start);
+
+                gain.gain.setValueAtTime(0.0001, start);
+                gain.gain.exponentialRampToValueAtTime(0.10, start + 0.18);
+                gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+                breathGain.gain.setValueAtTime(0.018, start);
+
+                voice.connect(filter);
+                breath.connect(breathGain);
+                breathGain.connect(filter);
+                filter.connect(gain);
+                gain.connect(mix);
+                voice.start(start);
+                breath.start(start);
+                voice.stop(start + duration + 0.05);
+                breath.stop(start + duration + 0.05);
+            }
+
+            function createStrings(frequency, duration, delay = 0) {
+                [-5, 5].forEach((detune) => {
+                    const start = context.currentTime + delay;
+                    const oscillator = context.createOscillator();
+                    const gain = context.createGain();
+                    const filter = context.createBiquadFilter();
+
+                    oscillator.type = "sawtooth";
+                    oscillator.frequency.setValueAtTime(frequency / 2, start);
+                    oscillator.detune.setValueAtTime(detune, start);
+                    filter.type = "lowpass";
+                    filter.frequency.setValueAtTime(650, start);
+                    gain.gain.setValueAtTime(0.0001, start);
+                    gain.gain.exponentialRampToValueAtTime(0.035, start + 0.55);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+                    oscillator.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(mix);
+                    oscillator.start(start);
+                    oscillator.stop(start + duration + 0.05);
+                });
+            }
+
+            function createFrameDrum(delay = 0) {
+                const start = context.currentTime + delay;
+                const oscillator = context.createOscillator();
+                const gain = context.createGain();
+                const filter = context.createBiquadFilter();
+
+                oscillator.type = "sine";
+                oscillator.frequency.setValueAtTime(95, start);
+                oscillator.frequency.exponentialRampToValueAtTime(55, start + 0.16);
+                filter.type = "lowpass";
+                filter.frequency.value = 180;
+                gain.gain.setValueAtTime(0.09, start);
+                gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.34);
+
+                oscillator.connect(filter);
+                filter.connect(gain);
+                gain.connect(mix);
+                oscillator.start(start);
+                oscillator.stop(start + 0.36);
+            }
+
             function playStep() {
                 const note = melody[step % melody.length];
-                createTone(scale[note], 1.8, 0.14);
+                createFlute(scale[note], 1.7);
+                createStrings(scale[note], 3.2);
+                createVoice(scale[note] / 2, 2.6, 0.035, 0.03, "triangle", 700);
 
                 if (step % 4 === 0) {
-                    createTone(scale[note] / 2, 2.8, 0.06, 0.05);
+                    createVoice(scale[note] / 4, 3.8, 0.055, 0.08, "sine", 500);
+                    createFrameDrum();
+                }
+
+                if (step % 8 === 6) {
+                    createFrameDrum(0.45);
                 }
 
                 step += 1;
@@ -523,7 +625,28 @@
                     context = new (window.AudioContext || window.webkitAudioContext)();
                     master = context.createGain();
                     master.gain.value = Number(volume.value) / 100;
-                    master.connect(context.destination);
+                    mix = context.createGain();
+                    mix.gain.value = 0.82;
+                    reverb = context.createConvolver();
+                    reverb.buffer = createImpulse();
+                    compressor = context.createDynamicsCompressor();
+                    compressor.threshold.value = -18;
+                    compressor.knee.value = 12;
+                    compressor.ratio.value = 3;
+                    compressor.attack.value = 0.02;
+                    compressor.release.value = 0.25;
+
+                    const dry = context.createGain();
+                    const wet = context.createGain();
+                    dry.gain.value = 0.72;
+                    wet.gain.value = 0.28;
+                    mix.connect(dry);
+                    mix.connect(reverb);
+                    reverb.connect(wet);
+                    dry.connect(master);
+                    wet.connect(master);
+                    master.connect(compressor);
+                    compressor.connect(context.destination);
                 }
 
                 await context.resume();
