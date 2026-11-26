@@ -8,7 +8,10 @@ El sitio presenta la identidad visual y la propuesta tecnológica de **Papiweb D
 
 - **Sitio institucional:** https://papiweb-desarrollos.github.io/papiweb/
 - **Repositorio actual:** https://github.com/gitpapiweb/portafolio
-- **Archivo de CV:** [index.html](index.html)
+- **CV Mainframe y desarrollo:** [index.html](index.html)
+- **CV de arquitectura y liderazgo:** [CV_Papiweb_Anselmo_Baez.html](CV_Papiweb_Anselmo_Baez.html)
+
+Ambas versiones permiten alternar entre sí y usar la opción de impresión del navegador para guardar una copia en PDF.
 
 ## Perfil profesional
 

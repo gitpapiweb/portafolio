@@ -334,9 +334,69 @@
                 bottom: 0.75rem;
             }
         }
+
+        .cv-actions {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            max-width: 850px;
+            margin: 0 auto 1rem;
+        }
+
+        .cv-actions a,
+        .cv-actions button {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            padding: 0.65rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 9999px;
+            background: #ffffff;
+            color: var(--primary-color);
+            font: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .cv-actions a:hover,
+        .cv-actions button:hover {
+            background: #eff6ff;
+            transform: translateY(-1px);
+        }
+
+        .cv-actions a:focus-visible,
+        .cv-actions button:focus-visible {
+            outline: 3px solid #93c5fd;
+            outline-offset: 3px;
+        }
+
+        @media print {
+            .cv-actions {
+                display: none;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .cv-actions a,
+            .cv-actions button {
+                flex: 1 1 100%;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
+
+    <nav class="cv-actions" aria-label="Acciones del currículum">
+        <a href="CV_Papiweb_Anselmo_Baez.html">Ver CV de arquitectura y liderazgo</a>
+        <button id="print-cv" type="button">Imprimir o guardar como PDF</button>
+    </nav>
 
     <div class="cv-container">
         <header>
@@ -475,6 +535,8 @@
 
     <script>
         (() => {
+            document.getElementById("print-cv").addEventListener("click", () => window.print());
+
             const toggle = document.getElementById("ambient-toggle");
             const volume = document.getElementById("ambient-volume");
             let context;
